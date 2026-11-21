@@ -1,0 +1,2117 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>نظام إدارة المزارع 2027 - مزرعة أحمد ومزرعة عبدالله</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <style>
+    :root {
+      --primary: #1b5e20;
+      --primary-light: #2e7d32;
+      --primary-bg: #e8f5e9;
+      --accent: #ef6c00;
+      --bg: #f4f6f4;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #d1d5db;
+      --danger: #c62828;
+      --info: #0277bd;
+    }
+    * { box-sizing: border-box; font-family: "Segoe UI", Tahoma, Arial, sans-serif; }
+    body { margin: 0; background: var(--bg); color: var(--text); }
+    header {
+      background: linear-gradient(135deg, #144518, #2e7d32);
+      color: #fff;
+      padding: 14px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    header h1 { margin: 0; font-size: 1.25rem; }
+    header p { margin: 2px 0 0; font-size: 0.85rem; opacity: 0.9; }
+    .farm-switcher {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.14);
+      padding: 5px 8px;
+      border-radius: 8px;
+    }
+    .farm-btn {
+      background: rgba(255,255,255,0.2);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.35);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-weight: 700;
+    }
+    .farm-btn.active-farm {
+      background: #fff;
+      color: var(--primary);
+      border-color: #fff;
+    }
+    .header-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    button, select, input, textarea {
+      font-size: 0.9rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      padding: 7px 11px;
+    }
+    input[type="color"] {
+      padding: 2px 4px;
+      height: 34px;
+      width: 48px;
+      cursor: pointer;
+    }
+    button {
+      cursor: pointer;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      font-weight: 600;
+      transition: 0.15s;
+    }
+    button:hover { opacity: 0.92; }
+    button.secondary { background: #fff; color: var(--primary); border: 1px solid var(--primary); }
+    button.accent { background: var(--accent); color: #fff; }
+    button.danger { background: var(--danger); color: #fff; }
+    button.sm { padding: 4px 8px; font-size: 0.8rem; }
+
+    nav.tabs {
+      display: flex;
+      flex-wrap: wrap;
+      background: #fff;
+      border-bottom: 2px solid var(--border);
+      padding: 0 16px;
+      gap: 4px;
+    }
+    nav.tabs button {
+      background: transparent;
+      color: var(--muted);
+      border-radius: 0;
+      padding: 12px 16px;
+      border-bottom: 3px solid transparent;
+    }
+    nav.tabs button.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      background: #f8fbf8;
+    }
+
+    .container { max-width: 1450px; margin: 0 auto; padding: 16px; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .kpi-card {
+      background: var(--card);
+      border-radius: 10px;
+      padding: 14px;
+      border-right: 4px solid var(--primary);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .kpi-card .label { font-size: 0.82rem; color: var(--muted); }
+    .kpi-card .val { font-size: 1.35rem; font-weight: 700; margin-top: 4px; color: var(--primary); }
+
+    .split-layout {
+      display: grid;
+      grid-template-columns: 1.55fr 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+    @media (max-width: 1024px) {
+      .split-layout { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 10px;
+      padding: 16px;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.07);
+      margin-bottom: 16px;
+    }
+    .card h2, .card h3 { margin-top: 0; color: var(--primary); font-size: 1.08rem; }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .bulk-status-box,
+    .section-colors-box,
+    .dividers-box {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .section-colors-box {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+    }
+    .dividers-box {
+      background: #fffbeb;
+      border-color: #fde68a;
+    }
+    .color-control-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #fff;
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .section-name-input {
+      width: 135px;
+      padding: 4px 7px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border: 1px solid #cbd5e1;
+      border-radius: 5px;
+    }
+    .divider-chips-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      width: 100%;
+      margin-top: 4px;
+    }
+    .divider-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #fff;
+      border: 1px solid #f59e0b;
+      color: #92400e;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+    .divider-chip button {
+      background: #dc2626;
+      color: #fff;
+      border-radius: 50%;
+      width: 18px;
+      height: 18px;
+      padding: 0;
+      font-size: 11px;
+      line-height: 18px;
+      text-align: center;
+    }
+
+    .map-wrapper {
+      overflow: auto;
+      max-height: 68vh;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      background: #fafafa;
+      direction: rtl;
+    }
+    .map-header-row,
+    .map-row {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      margin-bottom: 3px;
+      min-width: max-content;
+    }
+    .stage-h-divider {
+      margin: 6px 0 8px;
+      border-top: 3px solid #d97706;
+      border-bottom: 1px dashed #fbbf24;
+      padding: 2px 8px;
+      background: #fef3c7;
+      color: #78350f;
+      font-size: 0.75rem;
+      font-weight: 700;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-width: max-content;
+    }
+    .stage-v-gap {
+      width: 6px;
+      height: 24px;
+      background: #d97706;
+      border-radius: 3px;
+      flex-shrink: 0;
+      margin: 0 2px;
+    }
+    .corner-badge,
+    .row-badge,
+    .col-badge {
+      background: #1f2937;
+      color: #fff;
+      font-size: 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+    .corner-badge,
+    .row-badge {
+      width: 34px;
+      height: 24px;
+      font-size: 11px;
+    }
+    .col-badge {
+      width: 26px;
+      height: 22px;
+    }
+    .palm-cell {
+      width: 26px;
+      height: 24px;
+      border-radius: 4px;
+      border: 1px solid rgba(0,0,0,0.18);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      line-height: 1;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+      transition: transform 0.1s;
+    }
+    .palm-cell:hover { transform: scale(1.25); z-index: 5; box-shadow: 0 0 0 2px #000; }
+    .palm-cell.active-palm { outline: 3px solid #d32f2f; z-index: 6; transform: scale(1.18); }
+    .palm-cell.multi-selected { outline: 3px solid #0277bd; z-index: 4; }
+    .palm-cell.due-alert::after {
+      content: "!";
+      position: absolute;
+      top: -5px;
+      right: -4px;
+      background: #d32f2f;
+      color: #fff;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      font-size: 9px;
+      line-height: 12px;
+      text-align: center;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 0.8rem;
+      margin-bottom: 10px;
+    }
+    .legend span { display: inline-flex; align-items: center; gap: 5px; }
+    .swatch { width: 14px; height: 14px; border-radius: 3px; border: 1px solid #999; display: inline-block; }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px;
+    }
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-group label { font-size: 0.8rem; font-weight: 600; color: #374151; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th, td { border-bottom: 1px solid var(--border); padding: 8px 6px; text-align: right; }
+    th { background: var(--primary-bg); color: var(--primary); font-weight: 700; position: sticky; top: 0; }
+    tr:hover td { background: #f9fafb; }
+    .table-wrap { overflow-x: auto; max-height: 420px; }
+
+    .badge {
+      padding: 2px 7px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      display: inline-block;
+    }
+    .badge-treatment { background: #ffebee; color: #b71c1c; }
+    .badge-fertilizer { background: #e8f5e9; color: #1b5e20; }
+    .badge-irrigation { background: #e1f5fe; color: #01579b; }
+    .badge-other { background: #f3f4f6; color: #374151; }
+
+    .status-summary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin: 10px 0;
+    }
+    .mini-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 8px;
+      font-size: 0.8rem;
+    }
+    .mini-box strong { display: block; color: var(--primary); margin-bottom: 3px; }
+
+    @media (max-width: 900px) {
+      header { padding: 12px; }
+      .farm-switcher { width: 100%; justify-content: center; }
+      .header-actions { width: 100%; }
+      .header-actions button { flex: 1 1 auto; }
+      nav.tabs button { padding: 10px 10px; font-size: 0.82rem; }
+      .map-wrapper { max-height: 58vh; -webkit-overflow-scrolling: touch; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1 id="mainFarmTitle">نظام إدارة مزرعة أحمد 2027</h1>
+    <p id="mainFarmSubtitle">المزرعة النشطة: مزرعة أحمد • خريطة تفاعلية • سجل العلاج والري والتسميد • تقارير المصروفات</p>
+  </div>
+
+  <div class="farm-switcher" aria-label="اختيار المزرعة">
+    <button type="button" id="btnFarmAhmed" class="farm-btn active-farm" onclick="switchFarm('ahmed')">مزرعة أحمد</button>
+    <button type="button" id="btnFarmAbdullah" class="farm-btn" onclick="switchFarm('abdullah')">مزرعة عبدالله</button>
+  </div>
+
+  <div class="header-actions">
+    <button class="secondary" onclick="exportJSON()">حفظ نسخة احتياطية (JSON)</button>
+    <button class="secondary" onclick="document.getElementById('importFile').click()">استيراد نسخة</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)" />
+    <button class="secondary" onclick="exportTransactionsCSV()">تصدير المعاملات (Excel/CSV)</button>
+    <button class="accent" onclick="resetDemoData()">إعادة ضبط البيانات التجريبية</button>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button class="active" onclick="switchTab('tab-map', this)">1. الخريطة التفاعلية وملف النخلة</button>
+  <button onclick="switchTab('tab-tx', this)">2. تسجيل وإدارة المعاملات (فردي / جماعي)</button>
+  <button onclick="switchTab('tab-followup', this)">3. جدول المتابعة وإعادة العلاج</button>
+  <button onclick="switchTab('tab-reports', this)">4. التقارير الشهرية والسنوية</button>
+</nav>
+
+<div class="container">
+  <div class="kpi-grid" id="kpiGrid"></div>
+
+  <div id="tab-map" class="tab-panel active">
+    <div class="split-layout">
+      <div class="card">
+        <h2>خريطة توزيع النخيل التفاعلية — <span id="mapFarmLabel">مزرعة أحمد</span></h2>
+        <div class="toolbar">
+          <input type="number" id="searchPalmInput" placeholder="ابحث برقم النخلة (1 - 952)..." style="width:190px" onchange="selectPalmByNumber(this.value)" />
+          <select id="filterSection" onchange="renderMap()">
+            <option value="ALL">جميع الأقسام / المراحل</option>
+          </select>
+          <select id="filterStatus" onchange="renderMap()">
+            <option value="ALL">جميع الحالات</option>
+            <option value="منتجة">منتجة</option>
+            <option value="جديدة">جديدة</option>
+            <option value="صغيرة">صغيرة</option>
+            <option value="تحتاج متابعة">تحتاج متابعة علاج</option>
+            <option value="ميتة">ميتة</option>
+            <option value="موقع شاغر">موقع شاغر</option>
+          </select>
+          <label style="font-size:0.85rem; display:inline-flex; align-items:center; gap:5px; cursor:pointer; background:#e0f2fe; padding:5px 9px; border-radius:6px; border:1px solid #7dd3fc;">
+            <input type="checkbox" id="multiSelectMode" onchange="onMultiSelectModeToggle()" /> وضع التحديد المتعدد
+          </label>
+          <button class="sm secondary" onclick="selectVisibleFilteredPalms()">تحديد الظاهرة</button>
+          <button class="sm secondary" onclick="clearMultiSelection()">مسح التحديد (<span id="selectedCount">0</span>)</button>
+        </div>
+
+        <div class="dividers-box">
+          <strong style="font-size:0.85rem; color:#92400e;">فواصل المراحل (طولية / عرضية):</strong>
+          <select id="dividerOrientation" style="background:#fff;" onchange="syncDividerNumberRange()">
+            <option value="row">فاصل بالعرض (أفقي بعد صف)</option>
+            <option value="col">فاصل بالطول (عمودي بعد عمود)</option>
+          </select>
+          <input type="number" id="dividerIndexInput" min="1" max="36" value="5" style="width:85px; background:#fff;" title="رقم الصف أو العمود" />
+          <input type="text" id="dividerLabelInput" placeholder="اسم المرحلة أو ملاحظة (اختياري)" style="width:185px; background:#fff;" />
+          <button type="button" class="sm accent" onclick="addStageDivider()">+ إضافة فاصل</button>
+          <button type="button" class="sm secondary" onclick="clearAllStageDividers()">حذف كل الفواصل</button>
+          <div id="dividerChipsList" class="divider-chips-list"></div>
+        </div>
+
+        <div class="section-colors-box">
+          <strong style="font-size:0.85rem; color:var(--primary);">تسمية وألوان الأقسام / المراحل (تعديل يدوي):</strong>
+          <label class="color-control-item">
+            <input type="text" class="section-name-input" id="nameWest" onchange="renameSection('west', this.value)" title="عدّل الاسم يدوياً مثلاً: مرحلة صلاح" />
+            <input type="color" id="colorWest" onchange="updateSectionColor('west', this.value)" />
+          </label>
+          <label class="color-control-item">
+            <input type="text" class="section-name-input" id="nameMiddle" onchange="renameSection('middle', this.value)" title="عدّل الاسم يدوياً" />
+            <input type="color" id="colorMiddle" onchange="updateSectionColor('middle', this.value)" />
+          </label>
+          <label class="color-control-item">
+            <input type="text" class="section-name-input" id="nameEast" onchange="renameSection('east', this.value)" title="عدّل الاسم يدوياً" />
+            <input type="color" id="colorEast" onchange="updateSectionColor('east', this.value)" />
+          </label>
+          <label class="color-control-item">
+            <input type="text" class="section-name-input" id="nameSouth" onchange="renameSection('south', this.value)" title="عدّل الاسم يدوياً" />
+            <input type="color" id="colorSouth" onchange="updateSectionColor('south', this.value)" />
+          </label>
+          <button type="button" class="sm secondary" onclick="resetSectionColorsAndNames()">استعادة الافتراضي</button>
+        </div>
+
+        <div class="bulk-status-box">
+          <strong style="font-size:0.85rem; color:var(--primary);">تعديل جماعي للمحددة:</strong>
+          <input
+            type="text"
+            id="bulkStatusIdsInput"
+            placeholder="أرقام النخيل (مثال: 1,5,10-15)"
+            style="width:165px; background:#fff;"
+            oninput="syncSelectionFromBulkInput()"
+          />
+          <select id="bulkTargetColorSection" style="background:#fff;" title="اختيار لون أي قسم للمحددة">
+            <option value="">-- لون قسم / مرحلة --</option>
+          </select>
+          <select id="bulkTargetStatus" style="background:#fff;">
+            <option value="">-- بدون تغيير حالة --</option>
+            <option value="ميتة">ميتة (❌)</option>
+            <option value="تحتاج متابعة">تحتاج متابعة (🔺)</option>
+            <option value="منتجة">منتجة (🌴)</option>
+            <option value="جديدة">جديدة (🟩)</option>
+            <option value="صغيرة">صغيرة (🌴)</option>
+            <option value="مستبدلة">مستبدلة (🌴)</option>
+            <option value="موقع شاغر">موقع شاغر</option>
+          </select>
+          <select id="bulkTargetVariety" style="background:#fff;">
+            <option value="">-- بدون تغيير صنف --</option>
+            <option value="فحل">فحل (لون برتقالي 🟠)</option>
+            <option value="عجوة">عجوة</option>
+            <option value="فسيلة">فسيلة</option>
+            <option value="أخرى">أخرى</option>
+          </select>
+          <button type="button" class="sm danger" onclick="applyBulkStatus()">تطبيق على المحددة</button>
+        </div>
+
+        <div class="legend" id="mapLegend"></div>
+
+        <div class="map-wrapper" id="farmMapContainer"></div>
+      </div>
+
+      <div class="card" id="palmProfileCard">
+        <h2>ملف النخلة رقم: <span id="profId">#1</span></h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>القسم / المرحلة</label>
+            <input type="text" id="profSection" readonly style="background:#f3f4f6" />
+          </div>
+          <div class="form-group">
+            <label>الصف / العمود</label>
+            <input type="text" id="profCoords" readonly style="background:#f3f4f6" />
+          </div>
+          <div class="form-group">
+            <label>الصنف</label>
+            <select id="profVariety" onchange="onProfileVarietyChange()">
+              <option value="عجوة">عجوة</option>
+              <option value="فسيلة">فسيلة</option>
+              <option value="فحل">فحل (برتقالي)</option>
+              <option value="أخرى">أخرى</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>حالة النخلة</label>
+            <select id="profStatus">
+              <option value="منتجة">منتجة</option>
+              <option value="جديدة">جديدة</option>
+              <option value="صغيرة">صغيرة</option>
+              <option value="تحتاج متابعة">تحتاج متابعة</option>
+              <option value="ميتة">ميتة</option>
+              <option value="مستبدلة">مستبدلة</option>
+              <option value="موقع شاغر">موقع شاغر</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>تاريخ الزراعة</label>
+            <input type="date" id="profPlanted" />
+          </div>
+          <div class="form-group">
+            <label>إجمالي مصروفات النخلة</label>
+            <input type="text" id="profTotalCost" readonly style="background:#e8f5e9; font-weight:bold; color:#1b5e20" />
+          </div>
+        </div>
+        <div class="form-group" style="margin-top:8px;">
+          <label>ملاحظات النخلة</label>
+          <input type="text" id="profNotes" placeholder="ملاحظات خاصة بهذه النخلة..." />
+        </div>
+        <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+          <button onclick="savePalmDetails()">حفظ تعديلات النخلة</button>
+          <button class="accent" onclick="quickTxForActivePalm()">+ تسجيل علاج / ري / تسميد لهذه النخلة</button>
+        </div>
+
+        <div class="status-summary" id="palmCareSummary"></div>
+
+        <h3 style="margin-top:14px;">السجل الزراعي الكامل للنخلة</h3>
+        <div class="table-wrap" style="max-height:280px;">
+          <table>
+            <thead>
+              <tr>
+                <th>التاريخ</th>
+                <th>النوع</th>
+                <th>المادة / الجرعة</th>
+                <th>التكلفة</th>
+                <th>الإعادة</th>
+                <th>إجراء</th>
+              </tr>
+            </thead>
+            <tbody id="palmHistoryBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-tx" class="tab-panel">
+    <div class="card">
+      <h2 id="txFormTitle">تسجيل معاملة زراعية جديدة (لنخلة واحدة أو مجموعة نخيل)</h2>
+      <input type="hidden" id="editingTxId" value="" />
+      <div class="form-grid">
+        <div class="form-group">
+          <label>نطاق التطبيق</label>
+          <select id="txTargetMode" onchange="toggleTargetInputs()">
+            <option value="selected">النخيل المحددة من الخريطة أو بالأرقام</option>
+            <option value="section">قسم / مرحلة كاملة من المزرعة</option>
+            <option value="all_active">جميع النخيل المزروعة</option>
+          </select>
+        </div>
+        <div class="form-group" id="targetIdsGroup">
+          <label>أرقام النخيل (مثال: 15 أو 1,5,10-20)</label>
+          <input type="text" id="txPalmIds" value="1" placeholder="مثال: 1, 2, 10-25" />
+        </div>
+        <div class="form-group" id="targetSectionGroup" style="display:none;">
+          <label>اختر القسم / المرحلة</label>
+          <select id="txTargetSection"></select>
+        </div>
+        <div class="form-group">
+          <label>التاريخ</label>
+          <input type="date" id="txDate" />
+        </div>
+        <div class="form-group">
+          <label>نوع المعاملة</label>
+          <select id="txType">
+            <option value="علاج">علاج</option>
+            <option value="تسميد">تسميد</option>
+            <option value="ري">ري</option>
+            <option value="مكافحة">مكافحة</option>
+            <option value="تقليم">تقليم</option>
+            <option value="شراء مستلزمات">شراء مستلزمات</option>
+            <option value="صيانة">صيانة</option>
+            <option value="أخرى">أخرى</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>اسم المادة / السماد / المبيد</label>
+          <input type="text" id="txMaterial" placeholder="مثال: مبيد سوسة النخيل / سماد NPK" />
+        </div>
+        <div class="form-group">
+          <label>الجرعة والتركيز</label>
+          <input type="text" id="txDose" placeholder="مثال: 50 مل لكل نخلة" />
+        </div>
+        <div class="form-group">
+          <label>الوحدة</label>
+          <select id="txUnit">
+            <option value="لتر">لتر</option>
+            <option value="مل">مل</option>
+            <option value="كجم">كجم</option>
+            <option value="جرام">جرام</option>
+            <option value="كيس">كيس</option>
+            <option value="حبة">حبة</option>
+            <option value="متر">متر</option>
+            <option value="ساعة">ساعة</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>الكمية الإجمالية</label>
+          <input type="number" step="0.01" id="txQty" value="1" />
+        </div>
+        <div class="form-group">
+          <label>سعر الوحدة (ر.س)</label>
+          <input type="number" step="0.01" id="txUnitPrice" value="0" />
+        </div>
+        <div class="form-group">
+          <label>طريقة التنفيذ</label>
+          <select id="txMethod">
+            <option value="رش">رش</option>
+            <option value="حقن">حقن</option>
+            <option value="شبكة ري">شبكة ري</option>
+            <option value="يدوي">يدوي</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>موعد إعادة العلاج / المتابعة</label>
+          <input type="date" id="txFollowup" />
+        </div>
+        <div class="form-group">
+          <label>المورد / العامل المنفذ</label>
+          <input type="text" id="txWorker" placeholder="اسم العامل أو المورد" />
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:8px;">
+        <label>ملاحظات إضافية</label>
+        <input type="text" id="txNotes" placeholder="تفاصيل الإصابة أو ملاحظات التنفيذ..." />
+      </div>
+      <div style="margin-top:12px; display:flex; gap:8px;">
+        <button onclick="saveTransaction()">حفظ المعاملة</button>
+        <button class="secondary" onclick="resetTxForm()">تفريغ الحقول</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>سجل جميع المعاملات الزراعية (إضافة / تعديل / حذف)</h2>
+      <div class="toolbar">
+        <input type="text" id="txSearch" placeholder="بحث بالمادة أو رقم النخلة أو العامل..." oninput="renderAllTransactions()" />
+        <select id="txFilterType" onchange="renderAllTransactions()">
+          <option value="ALL">جميع أنواع المعاملات</option>
+          <option value="علاج">علاج</option>
+          <option value="تسميد">تسميد</option>
+          <option value="ري">ري</option>
+          <option value="مكافحة">مكافحة</option>
+          <option value="تقليم">تقليم</option>
+          <option value="شراء مستلزمات">شراء مستلزمات</option>
+          <option value="صيانة">صيانة</option>
+          <option value="أخرى">أخرى</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>التاريخ</th>
+              <th>النوع</th>
+              <th>النخيل المشمولة</th>
+              <th>المادة</th>
+              <th>الجرعة</th>
+              <th>الإجمالي (ر.س)</th>
+              <th>موعد الإعادة</th>
+              <th>إجراءات</th>
+            </tr>
+          </thead>
+          <tbody id="allTxBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-followup" class="tab-panel">
+    <div class="card">
+      <h2>مواعيد إعادة العلاج والمتابعة القادمة</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>موعد المتابعة</th>
+              <th>الحالة الزمنية</th>
+              <th>نوع المعاملة</th>
+              <th>المادة / الجرعة</th>
+              <th>النخيل المشمولة</th>
+              <th>إجراء سريع</th>
+            </tr>
+          </thead>
+          <tbody id="followupBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-reports" class="tab-panel">
+    <div class="split-layout">
+      <div class="card">
+        <h2>تقرير المصروفات الزراعية الشهري</h2>
+        <div class="toolbar">
+          <label>اختر السنة:</label>
+          <select id="reportYearFilter" onchange="renderReports()"></select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>الشهر</th>
+                <th>عدد العمليات</th>
+                <th>العلاج والمكافحة</th>
+                <th>التسميد</th>
+                <th>الري والصيانة</th>
+                <th>الإجمالي الشهري (ر.س)</th>
+              </tr>
+            </thead>
+            <tbody id="monthlyReportBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>التقرير السنوي للمصروفات حسب نوع المعاملة</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>السنة</th>
+                <th>نوع المعاملة</th>
+                <th>عدد العمليات</th>
+                <th>إجمالي التكلفة (ر.س)</th>
+              </tr>
+            </thead>
+            <tbody id="annualReportBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const __memStorage = {};
+const safeStorage = {
+  getItem(key) {
+    try {
+      return window.localStorage.getItem(key);
+    } catch (e) {
+      return Object.prototype.hasOwnProperty.call(__memStorage, key) ? __memStorage[key] : null;
+    }
+  },
+  setItem(key, val) {
+    const strVal = String(val);
+    try {
+      window.localStorage.setItem(key, strVal);
+    } catch (e) {}
+    __memStorage[key] = strVal;
+  }
+};
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBHa3dBtztvtaGUwDmrpGGgSI-monUN0r4",
+  authDomain: "ahr-project-b6952.firebaseapp.com",
+  databaseURL: "https://ahr-project-b6952-default-rtdb.firebaseio.com",
+  projectId: "ahr-project-b6952",
+  storageBucket: "ahr-project-b6952.firebasestorage.app",
+  messagingSenderId: "319745432071",
+  appId: "1:319745432071:web:d56e11c49119930794a8a2"
+};
+
+let db = null;
+try {
+  if (typeof firebase !== "undefined" && firebase.apps && firebase.apps.length === 0) {
+    firebase.initializeApp(firebaseConfig);
+  }
+  if (typeof firebase !== "undefined" && typeof firebase.database === "function") {
+    db = firebase.database();
+  }
+} catch (err) {
+  console.warn("Firebase init warning (offline/tablet mode):", err);
+  db = null;
+}
+
+const SECTION_KEYS = ["west", "middle", "east", "south"];
+
+const DEFAULT_SECTION_NAMES = {
+  west: "القسم الغربي (وردي)",
+  middle: "القسم الأوسط (أزرق)",
+  east: "القسم الشرقي (أخضر)",
+  south: "القسم الجنوبي (أصفر)"
+};
+
+const DEFAULT_SECTION_COLORS = {
+  west: "#f2dbdb",
+  middle: "#b8cce4",
+  east: "#d6e3bc",
+  south: "#ffff00"
+};
+
+const LEGACY_NAME_TO_KEY = {
+  "القسم الغربي (وردي)": "west",
+  "القسم الأوسط (أزرق)": "middle",
+  "القسم الشرقي (أخضر)": "east",
+  "القسم الجنوبي (أصفر)": "south"
+};
+
+const MALE_PALM_COLOR = "#f97316";
+
+const FARMS = {
+  ahmed: {
+    key: "ahmed",
+    name: "مزرعة أحمد",
+    dbPath: "farms/ahmed_farm",
+    palmsStorageKey: "farm_palms_2027_ahmed",
+    txStorageKey: "farm_tx_2027_ahmed",
+    colorsStorageKey: "farm_colors_2027_ahmed",
+    namesStorageKey: "farm_section_names_2027_ahmed",
+    dividersStorageKey: "farm_dividers_2027_ahmed"
+  },
+  abdullah: {
+    key: "abdullah",
+    name: "مزرعة عبدالله",
+    dbPath: "farms/abdullah_farm",
+    palmsStorageKey: "farm_palms_2027_abdullah",
+    txStorageKey: "farm_tx_2027_abdullah",
+    colorsStorageKey: "farm_colors_2027_abdullah",
+    namesStorageKey: "farm_section_names_2027_abdullah",
+    dividersStorageKey: "farm_dividers_2027_abdullah"
+  }
+};
+
+let currentFarmKey = safeStorage.getItem("active_farm_key_2027") || "ahmed";
+if (!FARMS[currentFarmKey]) currentFarmKey = "ahmed";
+
+let farmRef = db ? db.ref(FARMS[currentFarmKey].dbPath) : null;
+let currentListenerRef = null;
+
+let sectionNames = { ...DEFAULT_SECTION_NAMES };
+let sectionColors = { ...DEFAULT_SECTION_COLORS };
+let stageDividers = [];
+let palms = [];
+let transactions = [];
+let activePalmId = 1;
+let multiSelectedIds = new Set();
+
+function normalizeArray(val) {
+  if (Array.isArray(val)) {
+    return val.filter(item => item !== null && item !== undefined);
+  }
+  if (val && typeof val === "object") {
+    return Object.values(val).filter(item => item !== null && item !== undefined);
+  }
+  return [];
+}
+
+function resolveSectionKey(raw) {
+  if (!raw) return "west";
+  if (SECTION_KEYS.includes(raw)) return raw;
+  if (LEGACY_NAME_TO_KEY[raw]) return LEGACY_NAME_TO_KEY[raw];
+  for (const k of SECTION_KEYS) {
+    if (sectionNames[k] === raw) return k;
+  }
+  return "west";
+}
+
+function getSectionLabel(secKey) {
+  const key = resolveSectionKey(secKey);
+  return sectionNames[key] || DEFAULT_SECTION_NAMES[key];
+}
+
+function syncSectionDropdowns() {
+  const filterSel = document.getElementById("filterSection");
+  const prevFilter = filterSel.value;
+  filterSel.innerHTML = `<option value="ALL">جميع الأقسام / المراحل</option>` + SECTION_KEYS.map(k => {
+    const label = getSectionLabel(k);
+    return `<option value="${k}">${label}</option>`;
+  }).join("");
+  filterSel.value = SECTION_KEYS.includes(prevFilter) ? prevFilter : "ALL";
+
+  const bulkColorSel = document.getElementById("bulkTargetColorSection");
+  const prevBulkColor = bulkColorSel.value;
+  bulkColorSel.innerHTML = `<option value="">-- لون قسم / مرحلة --</option>` + SECTION_KEYS.map(k => {
+    const label = getSectionLabel(k);
+    return `<option value="${k}">لون: ${label}</option>`;
+  }).join("");
+  bulkColorSel.value = SECTION_KEYS.includes(prevBulkColor) ? prevBulkColor : "";
+
+  const txSecSel = document.getElementById("txTargetSection");
+  const prevTxSec = txSecSel.value;
+  txSecSel.innerHTML = SECTION_KEYS.map(k => {
+    const label = getSectionLabel(k);
+    return `<option value="${k}">${label}</option>`;
+  }).join("");
+  txSecSel.value = SECTION_KEYS.includes(prevTxSec) ? prevTxSec : "west";
+
+  const legendEl = document.getElementById("mapLegend");
+  legendEl.innerHTML = `
+    <span>🌴 نخلة مزروعة</span>
+    <span>🟩 جديدة</span>
+    <span>🔺 تحتاج متابعة</span>
+    <span>❌ نخلة ميتة</span>
+    <span>⚫ موقع شاغر</span>
+    ${SECTION_KEYS.map(k => `<span><i class="swatch" style="background:${sectionColors[k] || DEFAULT_SECTION_COLORS[k]}"></i> ${getSectionLabel(k)}</span>`).join("")}
+    <span><i class="swatch" style="background:#f97316"></i> فحل (برتقالي)</span>
+    <span><i class="swatch" style="background:#d97706"></i> فاصل مرحلة</span>
+    <span><i class="swatch" style="background:#fff; outline:2px solid #d32f2f"></i> النخلة المعروضة</span>
+    <span><i class="swatch" style="background:#fff; outline:2px solid #0277bd"></i> محددة جماعياً</span>
+  `;
+}
+
+function renameSection(secKey, newName) {
+  if (!SECTION_KEYS.includes(secKey)) return;
+  const trimmed = String(newName || "").trim();
+  sectionNames[secKey] = trimmed || DEFAULT_SECTION_NAMES[secKey];
+  palms.forEach(p => {
+    p.sectionKey = resolveSectionKey(p.sectionKey || p.section);
+    if (p.sectionKey === secKey) {
+      p.section = sectionNames[secKey];
+    }
+    if (p.colorSourceSection) {
+      p.colorSourceSection = resolveSectionKey(p.colorSourceSection);
+    }
+  });
+  syncColorInputsUI();
+  syncSectionDropdowns();
+  const activePalm = palms.find(p => Number(p.id) === activePalmId);
+  if (activePalm) {
+    document.getElementById("profSection").value = getSectionLabel(activePalm.sectionKey || activePalm.section);
+  }
+  persistData();
+  renderMap();
+}
+
+function resetSectionColorsAndNames() {
+  if (!confirm("هل تريد استعادة الأسماء والألوان الافتراضية للأقسام في هذه المزرعة؟")) return;
+  sectionNames = { ...DEFAULT_SECTION_NAMES };
+  sectionColors = { ...DEFAULT_SECTION_COLORS };
+  palms.forEach(p => {
+    const k = resolveSectionKey(p.sectionKey || p.section);
+    p.sectionKey = k;
+    p.section = sectionNames[k];
+    p.colorSourceSection = null;
+    p.fill = p.variety === "فحل" ? MALE_PALM_COLOR : DEFAULT_SECTION_COLORS[k];
+  });
+  syncColorInputsUI();
+  syncSectionDropdowns();
+  persistData();
+  refreshAllViews();
+}
+
+function syncDividerNumberRange() {
+  const ori = document.getElementById("dividerOrientation").value;
+  const inp = document.getElementById("dividerIndexInput");
+  inp.max = ori === "row" ? "22" : "36";
+  if (parseInt(inp.value, 10) > parseInt(inp.max, 10)) {
+    inp.value = inp.max;
+  }
+}
+
+function addStageDivider() {
+  const orientation = document.getElementById("dividerOrientation").value;
+  const maxVal = orientation === "row" ? 22 : 36;
+  const index = parseInt(document.getElementById("dividerIndexInput").value, 10);
+  const label = document.getElementById("dividerLabelInput").value.trim();
+
+  if (isNaN(index) || index < 1 || index > maxVal) {
+    alert(`أدخل رقماً صحيحاً بين 1 و ${maxVal}.`);
+    return;
+  }
+
+  const existingIdx = stageDividers.findIndex(d => d.orientation === orientation && d.index === index);
+  if (existingIdx !== -1) {
+    stageDividers[existingIdx].label = label || stageDividers[existingIdx].label;
+  } else {
+    stageDividers.push({
+      id: `${orientation}_${index}_${Date.now()}`,
+      orientation,
+      index,
+      label
+    });
+  }
+
+  document.getElementById("dividerLabelInput").value = "";
+  persistData();
+  renderDividerChips();
+  renderMap();
+}
+
+function removeStageDivider(id) {
+  stageDividers = stageDividers.filter(d => d.id !== id);
+  persistData();
+  renderDividerChips();
+  renderMap();
+}
+
+function clearAllStageDividers() {
+  if (!stageDividers.length) return;
+  if (!confirm("هل تريد حذف جميع فواصل المراحل في هذه المزرعة؟")) return;
+  stageDividers = [];
+  persistData();
+  renderDividerChips();
+  renderMap();
+}
+
+function renderDividerChips() {
+  const list = document.getElementById("dividerChipsList");
+  if (!stageDividers.length) {
+    list.innerHTML = `<span style="font-size:0.78rem; color:#92400e;">لا توجد فواصل مراحل مضافة حالياً.</span>`;
+    return;
+  }
+  const sorted = [...stageDividers].sort((a, b) => {
+    if (a.orientation !== b.orientation) return a.orientation.localeCompare(b.orientation);
+    return a.index - b.index;
+  });
+  list.innerHTML = sorted.map(d => {
+    const dirLabel = d.orientation === "row" ? `عرضي بعد صف ${d.index}` : `طولي بعد عمود ${d.index}`;
+    const noteText = d.label ? ` — ${d.label}` : "";
+    return `
+      <span class="divider-chip">
+        ${dirLabel}${noteText}
+        <button type="button" title="حذف الفاصل" onclick="removeStageDivider('${d.id}')">×</button>
+      </span>
+    `;
+  }).join("");
+}
+
+function getPalmDisplayColor(palm) {
+  if (palm.colorSourceSection) {
+    const ck = resolveSectionKey(palm.colorSourceSection);
+    return sectionColors[ck] || DEFAULT_SECTION_COLORS[ck] || "#f2dbdb";
+  }
+  if (palm.variety === "فحل") return MALE_PALM_COLOR;
+  const sk = resolveSectionKey(palm.sectionKey || palm.section);
+  return sectionColors[sk] || palm.fill || DEFAULT_SECTION_COLORS[sk] || "#f2dbdb";
+}
+
+function syncColorInputsUI() {
+  document.getElementById("nameWest").value = getSectionLabel("west");
+  document.getElementById("nameMiddle").value = getSectionLabel("middle");
+  document.getElementById("nameEast").value = getSectionLabel("east");
+  document.getElementById("nameSouth").value = getSectionLabel("south");
+
+  document.getElementById("colorWest").value = sectionColors.west || DEFAULT_SECTION_COLORS.west;
+  document.getElementById("colorMiddle").value = sectionColors.middle || DEFAULT_SECTION_COLORS.middle;
+  document.getElementById("colorEast").value = sectionColors.east || DEFAULT_SECTION_COLORS.east;
+  document.getElementById("colorSouth").value = sectionColors.south || DEFAULT_SECTION_COLORS.south;
+}
+
+function updateSectionColor(secKey, newColor) {
+  if (!SECTION_KEYS.includes(secKey)) return;
+  sectionColors[secKey] = newColor;
+  palms.forEach(p => {
+    const pk = resolveSectionKey(p.sectionKey || p.section);
+    const ck = p.colorSourceSection ? resolveSectionKey(p.colorSourceSection) : null;
+    if (ck === secKey) {
+      p.fill = newColor;
+    } else if (!ck && p.variety !== "فحل" && pk === secKey) {
+      p.fill = newColor;
+    }
+  });
+  syncColorInputsUI();
+  syncSectionDropdowns();
+  persistData();
+  renderMap();
+}
+
+function onProfileVarietyChange() {
+  const variety = document.getElementById("profVariety").value;
+  const palm = palms.find(p => Number(p.id) === activePalmId);
+  if (!palm) return;
+  const pk = resolveSectionKey(palm.sectionKey || palm.section);
+  if (variety === "فحل") {
+    palm.variety = "فحل";
+    palm.colorSourceSection = null;
+    palm.fill = MALE_PALM_COLOR;
+  } else {
+    palm.variety = variety;
+    const ck = palm.colorSourceSection ? resolveSectionKey(palm.colorSourceSection) : pk;
+    palm.fill = sectionColors[ck] || DEFAULT_SECTION_COLORS[ck] || "#f2dbdb";
+  }
+  persistData();
+  renderMap();
+}
+
+function buildInitialPalms() {
+  const nodes = [];
+  let id = 1;
+  for (let r = 1; r <= 22; r++) {
+    for (let c = 1; c <= 15; c++) {
+      const isMarker = (c === 1 || c === 10);
+      const secKey = "west";
+      const variety = isMarker ? "فحل" : "عجوة";
+      nodes.push({
+        id: id++,
+        rGroup: "top",
+        r,
+        c,
+        sectionKey: secKey,
+        section: getSectionLabel(secKey),
+        colorSourceSection: null,
+        fill: variety === "فحل" ? MALE_PALM_COLOR : DEFAULT_SECTION_COLORS[secKey],
+        type: isMarker ? "فحل / علامة" : "نخلة",
+        variety,
+        status: "منتجة",
+        plantedDate: "2024-03-15",
+        notes: isMarker ? "خط/علامة مميزة في المخطط" : ""
+      });
+    }
+  }
+  for (let r = 1; r <= 22; r++) {
+    for (let c = 1; c <= 12; c++) {
+      const isMarker = (c === 4);
+      const secKey = "middle";
+      const variety = isMarker ? "فحل" : "عجوة";
+      nodes.push({
+        id: id++,
+        rGroup: "top",
+        r,
+        c,
+        sectionKey: secKey,
+        section: getSectionLabel(secKey),
+        colorSourceSection: null,
+        fill: variety === "فحل" ? MALE_PALM_COLOR : DEFAULT_SECTION_COLORS[secKey],
+        type: isMarker ? "فحل / علامة" : "نخلة",
+        variety,
+        status: "منتجة",
+        plantedDate: "2024-03-15",
+        notes: isMarker ? "خط/علامة مميزة في المخطط" : ""
+      });
+    }
+  }
+  for (let r = 1; r <= 22; r++) {
+    for (let c = 1; c <= 9; c++) {
+      const isMarker = (c === 1);
+      const secKey = "east";
+      const variety = isMarker ? "فحل" : "عجوة";
+      nodes.push({
+        id: id++,
+        rGroup: "top",
+        r,
+        c,
+        sectionKey: secKey,
+        section: getSectionLabel(secKey),
+        colorSourceSection: null,
+        fill: variety === "فحل" ? MALE_PALM_COLOR : DEFAULT_SECTION_COLORS[secKey],
+        type: isMarker ? "فحل / علامة" : "نخلة",
+        variety,
+        status: "منتجة",
+        plantedDate: "2024-03-15",
+        notes: isMarker ? "خط/علامة مميزة في المخطط" : ""
+      });
+    }
+  }
+  for (let r = 1; r <= 5; r++) {
+    for (let c = 1; c <= 32; c++) {
+      const isMarker = (c === 1 || c === 10 || c === 19 || c === 28);
+      const isEmpty = (r >= 3 && c >= 30);
+      const secKey = "south";
+      const variety = isEmpty ? "غير محدد" : (isMarker ? "فحل" : "عجوة");
+      nodes.push({
+        id: id++,
+        rGroup: "bottom",
+        r,
+        c,
+        sectionKey: secKey,
+        section: getSectionLabel(secKey),
+        colorSourceSection: null,
+        fill: variety === "فحل" ? MALE_PALM_COLOR : DEFAULT_SECTION_COLORS[secKey],
+        type: isEmpty ? "موقع شاغر" : (isMarker ? "فحل / علامة" : "نخلة"),
+        variety,
+        status: isEmpty ? "موقع شاغر" : "منتجة",
+        plantedDate: isEmpty ? "" : "2024-04-01",
+        notes: ""
+      });
+    }
+  }
+  return nodes;
+}
+
+function buildSampleTransactions(farmKey) {
+  const workerLabel = farmKey === "abdullah" ? "عبدالله - فريق المزرعة" : "أحمد - فريق المزرعة";
+  return [
+    {
+      id: 1001,
+      date: "2026-10-15",
+      type: "تسميد",
+      palmIds: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      material: "سماد عضوي متحلل + NPK",
+      dose: "5 كجم / نخلة",
+      unit: "كجم",
+      qty: 50,
+      unitPrice: 4.5,
+      totalCost: 225,
+      method: "يدوي",
+      followupDate: "2027-01-15",
+      worker: workerLabel,
+      notes: `تسميد خريفي في ${FARMS[farmKey].name}`
+    }
+  ];
+}
+
+function migrateColorsToKeys(rawColors) {
+  const out = { ...DEFAULT_SECTION_COLORS };
+  if (!rawColors || typeof rawColors !== "object") return out;
+  Object.entries(rawColors).forEach(([k, val]) => {
+    const mappedKey = resolveSectionKey(k);
+    if (SECTION_KEYS.includes(mappedKey) && typeof val === "string") {
+      out[mappedKey] = val;
+    }
+  });
+  return out;
+}
+
+function loadFarmState(farmKey) {
+  const cfg = FARMS[farmKey];
+  const savedNames = JSON.parse(safeStorage.getItem(cfg.namesStorageKey) || "null");
+  sectionNames = { ...DEFAULT_SECTION_NAMES, ...(savedNames || {}) };
+
+  const savedColors = JSON.parse(safeStorage.getItem(cfg.colorsStorageKey) || "null");
+  sectionColors = migrateColorsToKeys(savedColors);
+
+  const savedDividers = JSON.parse(safeStorage.getItem(cfg.dividersStorageKey) || "null");
+  stageDividers = normalizeArray(savedDividers);
+
+  const savedPalms = JSON.parse(safeStorage.getItem(cfg.palmsStorageKey) || "null");
+  const parsedPalms = normalizeArray(savedPalms);
+  palms = (parsedPalms.length >= 100 ? parsedPalms : buildInitialPalms()).map(p => {
+    const sk = resolveSectionKey(p.sectionKey || p.section);
+    return {
+      ...p,
+      sectionKey: sk,
+      section: getSectionLabel(sk),
+      colorSourceSection: p.colorSourceSection ? resolveSectionKey(p.colorSourceSection) : null
+    };
+  });
+
+  const savedTx = JSON.parse(safeStorage.getItem(cfg.txStorageKey) || "null");
+  transactions = savedTx !== null ? normalizeArray(savedTx) : buildSampleTransactions(farmKey);
+
+  activePalmId = 1;
+  multiSelectedIds.clear();
+  document.getElementById("selectedCount").textContent = "0";
+  document.getElementById("bulkStatusIdsInput").value = "";
+  syncColorInputsUI();
+  syncSectionDropdowns();
+  renderDividerChips();
+}
+
+function updateFarmHeaderUI() {
+  const cfg = FARMS[currentFarmKey];
+  document.title = `نظام إدارة ${cfg.name} 2027`;
+  document.getElementById("mainFarmTitle").textContent = `نظام إدارة ${cfg.name} 2027`;
+  document.getElementById("mainFarmSubtitle").textContent =
+    `المزرعة النشطة: ${cfg.name} • خريطة تفاعلية • سجل العلاج والري والتسميد • تقارير المصروفات`;
+  document.getElementById("mapFarmLabel").textContent = cfg.name;
+  document.getElementById("btnFarmAhmed").classList.toggle("active-farm", currentFarmKey === "ahmed");
+  document.getElementById("btnFarmAbdullah").classList.toggle("active-farm", currentFarmKey === "abdullah");
+}
+
+function refreshAllViews() {
+  syncColorInputsUI();
+  syncSectionDropdowns();
+  renderDividerChips();
+  renderKPIs();
+  renderMap();
+  selectPalmByNumber(activePalmId, false);
+  if (document.getElementById("tab-tx").classList.contains("active")) renderAllTransactions();
+  if (document.getElementById("tab-followup").classList.contains("active")) renderFollowups();
+  if (document.getElementById("tab-reports").classList.contains("active")) renderReports();
+}
+
+function persistData() {
+  const cfg = FARMS[currentFarmKey];
+  safeStorage.setItem(cfg.palmsStorageKey, JSON.stringify(palms));
+  safeStorage.setItem(cfg.txStorageKey, JSON.stringify(transactions));
+  safeStorage.setItem(cfg.colorsStorageKey, JSON.stringify(sectionColors));
+  safeStorage.setItem(cfg.namesStorageKey, JSON.stringify(sectionNames));
+  safeStorage.setItem(cfg.dividersStorageKey, JSON.stringify(stageDividers));
+  if (farmRef) {
+    farmRef.set({ palms, transactions, sectionColors, sectionNames, stageDividers }).catch(err => {
+      console.warn("تعذر المزامنة السحابية حالياً:", err);
+    });
+  }
+}
+
+function attachFirebaseListener() {
+  if (!db) return;
+  try {
+    if (currentListenerRef) {
+      currentListenerRef.off("value");
+    }
+    const targetFarmKey = currentFarmKey;
+    const ref = db.ref(FARMS[targetFarmKey].dbPath);
+    farmRef = ref;
+    currentListenerRef = ref;
+
+    ref.on("value", (snap) => {
+      if (targetFarmKey !== currentFarmKey) return;
+      const data = snap.val();
+      const cfg = FARMS[targetFarmKey];
+      if (!data) {
+        ref.set({ palms, transactions, sectionColors, sectionNames, stageDividers }).catch(() => {});
+        return;
+      }
+      if (data.sectionNames && typeof data.sectionNames === "object") {
+        sectionNames = { ...DEFAULT_SECTION_NAMES, ...data.sectionNames };
+        safeStorage.setItem(cfg.namesStorageKey, JSON.stringify(sectionNames));
+      }
+      if (data.sectionColors && typeof data.sectionColors === "object") {
+        sectionColors = migrateColorsToKeys(data.sectionColors);
+        safeStorage.setItem(cfg.colorsStorageKey, JSON.stringify(sectionColors));
+      }
+      const remotePalms = normalizeArray(data.palms);
+      if (remotePalms.length >= 100) {
+        palms = remotePalms.map(p => {
+          const sk = resolveSectionKey(p.sectionKey || p.section);
+          return {
+            ...p,
+            sectionKey: sk,
+            section: getSectionLabel(sk),
+            colorSourceSection: p.colorSourceSection ? resolveSectionKey(p.colorSourceSection) : null
+          };
+        });
+        safeStorage.setItem(cfg.palmsStorageKey, JSON.stringify(palms));
+      }
+      if (data.transactions !== undefined) {
+        transactions = normalizeArray(data.transactions).map(t => ({
+          ...t,
+          palmIds: normalizeArray(t.palmIds)
+        }));
+        safeStorage.setItem(cfg.txStorageKey, JSON.stringify(transactions));
+      }
+      if (data.stageDividers !== undefined) {
+        stageDividers = normalizeArray(data.stageDividers);
+        safeStorage.setItem(cfg.dividersStorageKey, JSON.stringify(stageDividers));
+      }
+      refreshAllViews();
+    });
+  } catch (err) {
+    console.warn("Firebase listener skipped on tablet:", err);
+  }
+}
+
+function switchFarm(farmKey) {
+  if (!FARMS[farmKey]) return;
+  currentFarmKey = farmKey;
+  safeStorage.setItem("active_farm_key_2027", currentFarmKey);
+  updateFarmHeaderUI();
+  loadFarmState(currentFarmKey);
+  resetTxForm();
+  refreshAllViews();
+  attachFirebaseListener();
+}
+
+function switchTab(tabId, btn) {
+  document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll("nav.tabs button").forEach(b => b.classList.remove("active"));
+  document.getElementById(tabId).classList.add("active");
+  btn.classList.add("active");
+  if (tabId === "tab-tx") renderAllTransactions();
+  if (tabId === "tab-followup") renderFollowups();
+  if (tabId === "tab-reports") renderReports();
+}
+
+function getDuePalmIds() {
+  const today = new Date().toISOString().slice(0, 10);
+  const due = new Set();
+  transactions.forEach(tx => {
+    if (tx.followupDate && tx.followupDate <= today) {
+      normalizeArray(tx.palmIds).forEach(id => due.add(Number(id)));
+    }
+  });
+  return due;
+}
+
+function renderKPIs() {
+  const planted = palms.filter(p => p.status !== "موقع شاغر" && p.status !== "ميتة").length;
+  const deadCount = palms.filter(p => p.status === "ميتة").length;
+  const maleCount = palms.filter(p => p.variety === "فحل").length;
+  const totalExpenses = transactions.reduce((s, t) => s + (Number(t.totalCost) || 0), 0);
+  const treatCount = transactions.filter(t => t.type === "علاج" || t.type === "مكافحة").length;
+  const fertCount = transactions.filter(t => t.type === "تسميد").length;
+
+  document.getElementById("kpiGrid").innerHTML = `
+    <div class="kpi-card"><div class="label">النخيل الفعالة والمنتجة</div><div class="val">${planted} نخلة</div></div>
+    <div class="kpi-card"><div class="label">عدد الفحول (برتقالي)</div><div class="val" style="color:var(--accent)">${maleCount}</div></div>
+    <div class="kpi-card"><div class="label">النخيل المصنفة ميتة</div><div class="val" style="color:var(--danger)">${deadCount}</div></div>
+    <div class="kpi-card"><div class="label">إجمالي المعاملات المسجلة</div><div class="val">${transactions.length}</div></div>
+    <div class="kpi-card"><div class="label">إجمالي المصروفات الزراعية</div><div class="val">${totalExpenses.toLocaleString()} ر.س</div></div>
+    <div class="kpi-card"><div class="label">عمليات العلاج والتسميد</div><div class="val">${treatCount} علاج / ${fertCount} تسميد</div></div>
+  `;
+}
+
+function createHorizontalDividerBar(dividerObj, widthPx) {
+  const bar = document.createElement("div");
+  bar.className = "stage-h-divider";
+  if (widthPx) bar.style.width = `${widthPx}px`;
+  const titleText = dividerObj.label
+    ? `فاصل مرحلة بعد صف ${dividerObj.index}: ${dividerObj.label}`
+    : `فاصل مرحلة عرضي بعد صف ${dividerObj.index}`;
+  bar.innerHTML = `
+    <span>${titleText}</span>
+    <button type="button" title="حذف الفاصل" style="background:#dc2626;color:#fff;border:none;border-radius:4px;padding:1px 6px;font-size:11px;cursor:pointer;" onclick="removeStageDivider('${dividerObj.id}')">حذف</button>
+  `;
+  return bar;
+}
+
+function renderMap() {
+  const container = document.getElementById("farmMapContainer");
+  const secFilter = document.getElementById("filterSection").value;
+  const statusFilter = document.getElementById("filterStatus").value;
+  const dueSet = getDuePalmIds();
+  container.innerHTML = "";
+
+  const colDividers = new Map(
+    stageDividers.filter(d => d.orientation === "col").map(d => [Number(d.index), d])
+  );
+  const rowDividers = new Map(
+    stageDividers.filter(d => d.orientation === "row").map(d => [Number(d.index), d])
+  );
+
+  const topHeaderRow = document.createElement("div");
+  topHeaderRow.className = "map-header-row";
+  topHeaderRow.innerHTML = `<span class="corner-badge" title="صف / عمود">ص\\ع</span>`;
+  for (let c = 1; c <= 36; c++) {
+    const colBadge = document.createElement("span");
+    colBadge.className = "col-badge";
+    colBadge.title = `عمود ${c}`;
+    colBadge.textContent = c;
+    topHeaderRow.appendChild(colBadge);
+    if (colDividers.has(c)) {
+      const vGap = document.createElement("span");
+      vGap.className = "stage-v-gap";
+      vGap.title = colDividers.get(c).label || `فاصل طولي بعد عمود ${c}`;
+      topHeaderRow.appendChild(vGap);
+    }
+  }
+  container.appendChild(topHeaderRow);
+
+  for (let r = 1; r <= 22; r++) {
+    const rowDiv = document.createElement("div");
+    rowDiv.className = "map-row";
+    rowDiv.innerHTML = `<span class="row-badge" title="صف ${r}">${r}</span>`;
+
+    const palmsTrack = document.createElement("div");
+    palmsTrack.style.cssText = "display:flex; align-items:center; gap:3px; direction:ltr;";
+
+    const rowPalms = palms.filter(p => p.rGroup === "top" && Number(p.r) === r);
+    rowPalms.forEach(p => {
+      const cell = createPalmCell(p, secFilter, statusFilter, dueSet);
+      palmsTrack.appendChild(cell);
+      if (colDividers.has(Number(p.c))) {
+        const vGap = document.createElement("span");
+        vGap.className = "stage-v-gap";
+        vGap.title = colDividers.get(Number(p.c)).label || `فاصل طولي بعد عمود ${p.c}`;
+        palmsTrack.appendChild(vGap);
+      }
+    });
+
+    rowDiv.appendChild(palmsTrack);
+    container.appendChild(rowDiv);
+
+    if (rowDividers.has(r)) {
+      container.appendChild(createHorizontalDividerBar(rowDividers.get(r), 1080));
+    }
+  }
+
+  const sep = document.createElement("div");
+  sep.style.cssText = "height:12px; border-bottom:2px dashed #9ca3af; margin:8px 0;";
+  container.appendChild(sep);
+
+  const bottomHeaderRow = document.createElement("div");
+  bottomHeaderRow.className = "map-header-row";
+  bottomHeaderRow.innerHTML = `<span class="corner-badge" style="background:#92400e" title="صف جنوبي / عمود">ج\\ع</span>`;
+  for (let c = 1; c <= 32; c++) {
+    const colBadge = document.createElement("span");
+    colBadge.className = "col-badge";
+    colBadge.style.background = "#92400e";
+    colBadge.title = `عمود جنوبي ${c}`;
+    colBadge.textContent = c;
+    bottomHeaderRow.appendChild(colBadge);
+    if (colDividers.has(c)) {
+      const vGap = document.createElement("span");
+      vGap.className = "stage-v-gap";
+      vGap.title = colDividers.get(c).label || `فاصل طولي بعد عمود ${c}`;
+      bottomHeaderRow.appendChild(vGap);
+    }
+  }
+  container.appendChild(bottomHeaderRow);
+
+  for (let r = 1; r <= 5; r++) {
+    const rowDiv = document.createElement("div");
+    rowDiv.className = "map-row";
+    rowDiv.innerHTML = `<span class="row-badge" style="background:#92400e" title="صف جنوبي ${r}">ج${r}</span>`;
+
+    const palmsTrack = document.createElement("div");
+    palmsTrack.style.cssText = "display:flex; align-items:center; gap:3px; direction:ltr;";
+
+    const rowPalms = palms.filter(p => p.rGroup === "bottom" && Number(p.r) === r);
+    rowPalms.forEach(p => {
+      const cell = createPalmCell(p, secFilter, statusFilter, dueSet);
+      palmsTrack.appendChild(cell);
+      if (colDividers.has(Number(p.c))) {
+        const vGap = document.createElement("span");
+        vGap.className = "stage-v-gap";
+        vGap.title = colDividers.get(Number(p.c)).label || `فاصل طولي بعد عمود ${p.c}`;
+        palmsTrack.appendChild(vGap);
+      }
+    });
+
+    rowDiv.appendChild(palmsTrack);
+    container.appendChild(rowDiv);
+  }
+}
+
+function getPalmSymbol(palm, dueSet) {
+  if (palm.status === "ميتة") return "❌";
+  if (palm.status === "تحتاج متابعة" || dueSet.has(Number(palm.id))) return "🔺";
+  if (palm.status === "موقع شاغر") return "⚫";
+  if (palm.status === "جديدة") return "🟩";
+  return "🌴";
+}
+
+function syncSelectionInputs() {
+  const sorted = Array.from(multiSelectedIds).sort((a, b) => a - b);
+  document.getElementById("selectedCount").textContent = sorted.length;
+  const formatted = sorted.join(", ");
+  document.getElementById("txPalmIds").value = formatted;
+  document.getElementById("bulkStatusIdsInput").value = formatted;
+}
+
+function syncSelectionFromBulkInput() {
+  const parsed = parsePalmIdExpression(document.getElementById("bulkStatusIdsInput").value);
+  multiSelectedIds = new Set(parsed);
+  document.getElementById("selectedCount").textContent = multiSelectedIds.size;
+  document.getElementById("txPalmIds").value = parsed.join(", ");
+  renderMap();
+}
+
+function onMultiSelectModeToggle() {
+  const isMulti = document.getElementById("multiSelectMode").checked;
+  if (isMulti && activePalmId && multiSelectedIds.size === 0) {
+    multiSelectedIds.add(activePalmId);
+    syncSelectionInputs();
+    renderMap();
+  }
+}
+
+function selectVisibleFilteredPalms() {
+  const secFilter = document.getElementById("filterSection").value;
+  const statusFilter = document.getElementById("filterStatus").value;
+  const matching = palms.filter(p => {
+    const pk = resolveSectionKey(p.sectionKey || p.section);
+    const matchSec = (secFilter === "ALL" || pk === secFilter);
+    const matchStatus = (statusFilter === "ALL" || p.status === statusFilter);
+    return matchSec && matchStatus && p.status !== "موقع شاغر";
+  });
+  multiSelectedIds = new Set(matching.map(p => Number(p.id)));
+  document.getElementById("multiSelectMode").checked = true;
+  syncSelectionInputs();
+  renderMap();
+}
+
+function createPalmCell(p, secFilter, statusFilter, dueSet) {
+  const pk = resolveSectionKey(p.sectionKey || p.section);
+  const secLabel = getSectionLabel(pk);
+  const cell = document.createElement("div");
+  cell.className = "palm-cell";
+  cell.style.background = getPalmDisplayColor(p);
+  cell.textContent = getPalmSymbol(p, dueSet);
+  cell.title = `نخلة #${p.id} | ${secLabel} | صف ${p.r} عمود ${p.c} | صنف: ${p.variety} | ${p.status}`;
+
+  const matchSec = (secFilter === "ALL" || pk === secFilter);
+  const matchStatus = (statusFilter === "ALL" || p.status === statusFilter);
+  if (!matchSec || !matchStatus) {
+    cell.style.opacity = "0.2";
+  }
+  if (Number(p.id) === activePalmId) cell.classList.add("active-palm");
+  if (multiSelectedIds.has(Number(p.id))) cell.classList.add("multi-selected");
+  if (dueSet.has(Number(p.id))) cell.classList.add("due-alert");
+
+  cell.onclick = () => {
+    const isMulti = document.getElementById("multiSelectMode").checked;
+    if (isMulti) {
+      const pid = Number(p.id);
+      if (multiSelectedIds.has(pid)) multiSelectedIds.delete(pid);
+      else multiSelectedIds.add(pid);
+      syncSelectionInputs();
+    }
+    selectPalmByNumber(p.id);
+  };
+  return cell;
+}
+
+function clearMultiSelection() {
+  multiSelectedIds.clear();
+  document.getElementById("selectedCount").textContent = "0";
+  document.getElementById("bulkStatusIdsInput").value = "";
+  renderMap();
+}
+
+function applyBulkStatus() {
+  const targetColorSection = document.getElementById("bulkTargetColorSection").value;
+  const targetStatus = document.getElementById("bulkTargetStatus").value;
+  const targetVariety = document.getElementById("bulkTargetVariety").value;
+
+  if (!targetColorSection && !targetStatus && !targetVariety) {
+    alert("اختر لون قسم أو حالة أو صنفاً لتطبيقه على النخيل المحددة.");
+    return;
+  }
+
+  let targetIds = Array.from(multiSelectedIds);
+  if (targetIds.length === 0) {
+    targetIds = parsePalmIdExpression(document.getElementById("bulkStatusIdsInput").value);
+  }
+  if (targetIds.length === 0) {
+    alert("فعّل وضع التحديد المتعدد واختر نخلة أو أكثر، أو اكتب أرقامها أولاً.");
+    return;
+  }
+
+  let updatedCount = 0;
+  palms.forEach(p => {
+    if (targetIds.includes(Number(p.id))) {
+      const pk = resolveSectionKey(p.sectionKey || p.section);
+      if (targetStatus) p.status = targetStatus;
+      if (targetVariety) {
+        p.variety = targetVariety;
+        if (!targetColorSection) {
+          p.colorSourceSection = null;
+          p.fill = targetVariety === "فحل"
+            ? MALE_PALM_COLOR
+            : (sectionColors[pk] || DEFAULT_SECTION_COLORS[pk] || "#f2dbdb");
+        }
+      }
+      if (targetColorSection) {
+        const ck = resolveSectionKey(targetColorSection);
+        p.colorSourceSection = ck;
+        p.fill = sectionColors[ck] || DEFAULT_SECTION_COLORS[ck] || "#f2dbdb";
+      }
+      updatedCount++;
+    }
+  });
+
+  document.getElementById("bulkTargetColorSection").value = "";
+  document.getElementById("bulkTargetStatus").value = "";
+  document.getElementById("bulkTargetVariety").value = "";
+  persistData();
+  refreshAllViews();
+  alert(`تم تحديث (${updatedCount}) نخلة في ${FARMS[currentFarmKey].name}.`);
+}
+
+function selectPalmByNumber(idVal, shouldRenderMap = true) {
+  const id = parseInt(idVal, 10);
+  const palm = palms.find(p => Number(p.id) === id);
+  if (!palm) return;
+  activePalmId = id;
+  const pk = resolveSectionKey(palm.sectionKey || palm.section);
+  document.getElementById("profId").textContent = `#${palm.id}`;
+  document.getElementById("profSection").value = getSectionLabel(pk);
+  document.getElementById("profCoords").value = `صف ${palm.r} - عمود ${palm.c}`;
+  document.getElementById("profVariety").value = palm.variety || "عجوة";
+  document.getElementById("profStatus").value = palm.status || "منتجة";
+  document.getElementById("profPlanted").value = palm.plantedDate || "";
+  document.getElementById("profNotes").value = palm.notes || "";
+
+  const palmTxs = transactions
+    .filter(tx => {
+      const ids = normalizeArray(tx.palmIds).map(Number);
+      return ids.includes(Number(palm.id));
+    })
+    .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+
+  const shareCost = palmTxs.reduce((sum, tx) => {
+    const count = normalizeArray(tx.palmIds).length || 1;
+    return sum + ((Number(tx.totalCost) || 0) / count);
+  }, 0);
+  document.getElementById("profTotalCost").value = `${shareCost.toFixed(2)} ر.س`;
+
+  const lastIrr = palmTxs.find(t => t.type === "ري");
+  const lastFert = palmTxs.find(t => t.type === "تسميد");
+  const lastTreat = palmTxs.find(t => t.type === "علاج" || t.type === "مكافحة");
+
+  document.getElementById("palmCareSummary").innerHTML = `
+    <div class="mini-box"><strong>آخر ري</strong>${lastIrr ? `${lastIrr.date}<br>${lastIrr.dose || lastIrr.material}` : "لا يوجد"}</div>
+    <div class="mini-box"><strong>آخر تسميد</strong>${lastFert ? `${lastFert.date}<br>${lastFert.material}` : "لا يوجد"}</div>
+    <div class="mini-box"><strong>آخر علاج</strong>${lastTreat ? `${lastTreat.date}<br>${lastTreat.material}` : "لا يوجد"}</div>
+  `;
+
+  const tbody = document.getElementById("palmHistoryBody");
+  if (palmTxs.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#6b7280">لا توجد معاملات مسجلة لهذه النخلة بعد</td></tr>`;
+  } else {
+    tbody.innerHTML = palmTxs.map(tx => {
+      const count = normalizeArray(tx.palmIds).length || 1;
+      const perPalmCost = ((Number(tx.totalCost) || 0) / count).toFixed(2);
+      return `
+        <tr>
+          <td>${tx.date}</td>
+          <td><span class="badge ${badgeClass(tx.type)}">${tx.type}</span></td>
+          <td>${tx.material} ${tx.dose ? `<br><small>(${tx.dose})</small>` : ""}</td>
+          <td>${perPalmCost} ر.س</td>
+          <td>${tx.followupDate || "-"}</td>
+          <td><button class="sm secondary" onclick="editTransaction(${tx.id})">تعديل</button></td>
+        </tr>
+      `;
+    }).join("");
+  }
+  if (shouldRenderMap) renderMap();
+}
+
+function savePalmDetails() {
+  const palm = palms.find(p => Number(p.id) === activePalmId);
+  if (!palm) return;
+  const newVariety = document.getElementById("profVariety").value;
+  const pk = resolveSectionKey(palm.sectionKey || palm.section);
+  palm.variety = newVariety;
+  if (newVariety === "فحل") {
+    palm.colorSourceSection = null;
+    palm.fill = MALE_PALM_COLOR;
+  } else {
+    const ck = palm.colorSourceSection ? resolveSectionKey(palm.colorSourceSection) : pk;
+    palm.fill = sectionColors[ck] || DEFAULT_SECTION_COLORS[ck] || "#f2dbdb";
+  }
+  palm.status = document.getElementById("profStatus").value;
+  palm.plantedDate = document.getElementById("profPlanted").value;
+  palm.notes = document.getElementById("profNotes").value;
+  persistData();
+  refreshAllViews();
+  alert(`تم حفظ بيانات النخلة #${palm.id} في ${FARMS[currentFarmKey].name}.`);
+}
+
+function quickTxForActivePalm() {
+  const ids = multiSelectedIds.size > 0 ? Array.from(multiSelectedIds).join(", ") : String(activePalmId);
+  document.getElementById("txTargetMode").value = "selected";
+  toggleTargetInputs();
+  document.getElementById("txPalmIds").value = ids;
+  document.getElementById("txDate").value = new Date().toISOString().slice(0, 10);
+  const txTabBtn = document.querySelectorAll("nav.tabs button")[1];
+  switchTab("tab-tx", txTabBtn);
+}
+
+function toggleTargetInputs() {
+  const mode = document.getElementById("txTargetMode").value;
+  document.getElementById("targetIdsGroup").style.display = (mode === "selected") ? "flex" : "none";
+  document.getElementById("targetSectionGroup").style.display = (mode === "section") ? "flex" : "none";
+}
+
+function parsePalmIdExpression(expr) {
+  const set = new Set();
+  String(expr || "").split(",").forEach(part => {
+    const clean = part.trim();
+    if (!clean) return;
+    if (clean.includes("-")) {
+      const [start, end] = clean.split("-").map(n => parseInt(n.trim(), 10));
+      if (!isNaN(start) && !isNaN(end)) {
+        for (let i = Math.min(start, end); i <= Math.max(start, end); i++) {
+          if (palms.some(p => Number(p.id) === i)) set.add(i);
+        }
+      }
+    } else {
+      const num = parseInt(clean, 10);
+      if (!isNaN(num) && palms.some(p => Number(p.id) === num)) set.add(num);
+    }
+  });
+  return Array.from(set).sort((a, b) => a - b);
+}
+
+function saveTransaction() {
+  const mode = document.getElementById("txTargetMode").value;
+  let targetIds = [];
+  if (mode === "selected") {
+    targetIds = parsePalmIdExpression(document.getElementById("txPalmIds").value);
+  } else if (mode === "section") {
+    const secKey = resolveSectionKey(document.getElementById("txTargetSection").value);
+    targetIds = palms.filter(p => resolveSectionKey(p.sectionKey || p.section) === secKey && p.status !== "موقع شاغر").map(p => Number(p.id));
+  } else {
+    targetIds = palms.filter(p => p.status !== "موقع شاغر").map(p => Number(p.id));
+  }
+
+  if (targetIds.length === 0) {
+    alert("يرجى تحديد نخلة واحدة على الأقل.");
+    return;
+  }
+
+  const date = document.getElementById("txDate").value || new Date().toISOString().slice(0, 10);
+  const type = document.getElementById("txType").value;
+  const material = document.getElementById("txMaterial").value.trim() || type;
+  const dose = document.getElementById("txDose").value.trim();
+  const unit = document.getElementById("txUnit").value;
+  const qty = parseFloat(document.getElementById("txQty").value) || 0;
+  const unitPrice = parseFloat(document.getElementById("txUnitPrice").value) || 0;
+  const totalCost = +(qty * unitPrice).toFixed(2);
+  const method = document.getElementById("txMethod").value;
+  const followupDate = document.getElementById("txFollowup").value;
+  const worker = document.getElementById("txWorker").value.trim();
+  const notes = document.getElementById("txNotes").value.trim();
+
+  const editId = document.getElementById("editingTxId").value;
+  if (editId) {
+    const idx = transactions.findIndex(t => Number(t.id) === Number(editId));
+    if (idx !== -1) {
+      transactions[idx] = { id: Number(editId), date, type, palmIds: targetIds, material, dose, unit, qty, unitPrice, totalCost, method, followupDate, worker, notes };
+    }
+  } else {
+    const nextId = transactions.length ? Math.max(...transactions.map(t => Number(t.id) || 1000)) + 1 : 1001;
+    transactions.push({ id: nextId, date, type, palmIds: targetIds, material, dose, unit, qty, unitPrice, totalCost, method, followupDate, worker, notes });
+  }
+
+  persistData();
+  resetTxForm();
+  refreshAllViews();
+  alert(`تم حفظ المعاملة في ${FARMS[currentFarmKey].name} وربطها بـ (${targetIds.length}) نخلة.`);
+}
+
+function editTransaction(id) {
+  const tx = transactions.find(t => Number(t.id) === Number(id));
+  if (!tx) return;
+  const txTabBtn = document.querySelectorAll("nav.tabs button")[1];
+  switchTab("tab-tx", txTabBtn);
+  document.getElementById("txFormTitle").textContent = `تعديل المعاملة رقم #${tx.id}`;
+  document.getElementById("editingTxId").value = tx.id;
+  document.getElementById("txTargetMode").value = "selected";
+  toggleTargetInputs();
+  document.getElementById("txPalmIds").value = normalizeArray(tx.palmIds).join(", ");
+  document.getElementById("txDate").value = tx.date;
+  document.getElementById("txType").value = tx.type;
+  document.getElementById("txMaterial").value = tx.material;
+  document.getElementById("txDose").value = tx.dose || "";
+  document.getElementById("txUnit").value = tx.unit;
+  document.getElementById("txQty").value = tx.qty;
+  document.getElementById("txUnitPrice").value = tx.unitPrice;
+  document.getElementById("txMethod").value = tx.method;
+  document.getElementById("txFollowup").value = tx.followupDate || "";
+  document.getElementById("txWorker").value = tx.worker || "";
+  document.getElementById("txNotes").value = tx.notes || "";
+}
+
+function deleteTransaction(id) {
+  if (!confirm("هل أنت متأكد من حذف هذه المعاملة نهائياً؟")) return;
+  transactions = transactions.filter(t => Number(t.id) !== Number(id));
+  persistData();
+  refreshAllViews();
+}
+
+function resetTxForm() {
+  document.getElementById("txFormTitle").textContent = "تسجيل معاملة زراعية جديدة (لنخلة واحدة أو مجموعة نخيل)";
+  document.getElementById("editingTxId").value = "";
+  document.getElementById("txDate").value = new Date().toISOString().slice(0, 10);
+  document.getElementById("txMaterial").value = "";
+  document.getElementById("txDose").value = "";
+  document.getElementById("txQty").value = "1";
+  document.getElementById("txUnitPrice").value = "0";
+  document.getElementById("txFollowup").value = "";
+  document.getElementById("txWorker").value = "";
+  document.getElementById("txNotes").value = "";
+}
+
+function badgeClass(type) {
+  if (type === "علاج" || type === "مكافحة") return "badge-treatment";
+  if (type === "تسميد") return "badge-fertilizer";
+  if (type === "ري") return "badge-irrigation";
+  return "badge-other";
+}
+
+function renderAllTransactions() {
+  const q = document.getElementById("txSearch").value.trim().toLowerCase();
+  const typeF = document.getElementById("txFilterType").value;
+  const filtered = transactions
+    .filter(tx => (typeF === "ALL" || tx.type === typeF))
+    .filter(tx => {
+      if (!q) return true;
+      const pids = normalizeArray(tx.palmIds);
+      return (tx.material || "").toLowerCase().includes(q) ||
+             (tx.worker || "").toLowerCase().includes(q) ||
+             pids.join(",").includes(q);
+    })
+    .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+
+  document.getElementById("allTxBody").innerHTML = filtered.map(tx => {
+    const pids = normalizeArray(tx.palmIds);
+    const palmsSummary = pids.length > 6
+      ? `${pids.length} نخلة (${pids.slice(0,4).join(",")}...)`
+      : pids.join(", ");
+    return `
+      <tr>
+        <td>${tx.id}</td>
+        <td>${tx.date}</td>
+        <td><span class="badge ${badgeClass(tx.type)}">${tx.type}</span></td>
+        <td>${palmsSummary}</td>
+        <td>${tx.material}</td>
+        <td>${tx.dose || "-"}</td>
+        <td><strong>${Number(tx.totalCost || 0).toFixed(2)}</strong></td>
+        <td>${tx.followupDate || "-"}</td>
+        <td>
+          <button class="sm secondary" onclick="editTransaction(${tx.id})">تعديل</button>
+          <button class="sm danger" onclick="deleteTransaction(${tx.id})">حذف</button>
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function renderFollowups() {
+  const today = new Date().toISOString().slice(0, 10);
+  const items = transactions
+    .filter(tx => tx.followupDate)
+    .sort((a, b) => a.followupDate.localeCompare(b.followupDate));
+
+  document.getElementById("followupBody").innerHTML = items.map(tx => {
+    const pids = normalizeArray(tx.palmIds);
+    const isOverdue = tx.followupDate < today;
+    const isToday = tx.followupDate === today;
+    const statusHtml = isOverdue
+      ? `<span class="badge badge-treatment">متأخر</span>`
+      : (isToday ? `<span class="badge" style="background:#fff3e0;color:#e65100">مستحق اليوم</span>` : `<span class="badge badge-fertilizer">قادم</span>`);
+    return `
+      <tr>
+        <td><strong>${tx.followupDate}</strong></td>
+        <td>${statusHtml}</td>
+        <td>${tx.type}</td>
+        <td>${tx.material} (${tx.dose || "-"})</td>
+        <td>${pids.length} نخلة: ${pids.slice(0,8).join(", ")}</td>
+        <td><button class="sm" onclick="repeatTreatment(${tx.id})">تسجيل إعادة المعاملة الآن</button></td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function repeatTreatment(txId) {
+  editTransaction(txId);
+  document.getElementById("editingTxId").value = "";
+  document.getElementById("txFormTitle").textContent = "تسجيل إعادة معاملة مجدولة";
+  document.getElementById("txDate").value = new Date().toISOString().slice(0, 10);
+  document.getElementById("txFollowup").value = "";
+}
+
+function renderReports() {
+  const years = Array.from(new Set(transactions.map(t => (t.date || "").slice(0, 4)).filter(Boolean))).sort().reverse();
+  if (years.length === 0) years.push("2026");
+  const yearSel = document.getElementById("reportYearFilter");
+  const prevYear = yearSel.value || years[0];
+  yearSel.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join("");
+  yearSel.value = years.includes(prevYear) ? prevYear : years[0];
+  const selectedYear = yearSel.value;
+
+  const months = ["01","02","03","04","05","06","07","08","09","10","11","12"];
+  const monthNames = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+
+  let yearGrandTotal = 0;
+  document.getElementById("monthlyReportBody").innerHTML = months.map((m, idx) => {
+    const ym = `${selectedYear}-${m}`;
+    const mTxs = transactions.filter(t => (t.date || "").startsWith(ym));
+    const treat = mTxs.filter(t => t.type === "علاج" || t.type === "مكافحة").reduce((s, t) => s + Number(t.totalCost || 0), 0);
+    const fert = mTxs.filter(t => t.type === "تسميد").reduce((s, t) => s + Number(t.totalCost || 0), 0);
+    const other = mTxs.filter(t => !["علاج","مكافحة","تسميد"].includes(t.type)).reduce((s, t) => s + Number(t.totalCost || 0), 0);
+    const tot = treat + fert + other;
+    yearGrandTotal += tot;
+    return `
+      <tr>
+        <td>${monthNames[idx]} (${ym})</td>
+        <td>${mTxs.length}</td>
+        <td>${treat.toFixed(2)}</td>
+        <td>${fert.toFixed(2)}</td>
+        <td>${other.toFixed(2)}</td>
+        <td><strong>${tot.toFixed(2)} ر.س</strong></td>
+      </tr>
+    `;
+  }).join("") + `
+    <tr style="background:#e8f5e9; font-weight:bold;">
+      <td colspan="5">الإجمالي السنوي لعام ${selectedYear}</td>
+      <td>${yearGrandTotal.toFixed(2)} ر.س</td>
+    </tr>
+  `;
+
+  const grouped = {};
+  transactions.forEach(t => {
+    const y = (t.date || "2026").slice(0, 4);
+    const key = `${y}|${t.type}`;
+    if (!grouped[key]) grouped[key] = { year: y, type: t.type, count: 0, total: 0 };
+    grouped[key].count++;
+    grouped[key].total += Number(t.totalCost) || 0;
+  });
+
+  document.getElementById("annualReportBody").innerHTML = Object.values(grouped)
+    .sort((a, b) => b.year.localeCompare(a.year))
+    .map(g => `
+      <tr>
+        <td>${g.year}</td>
+        <td>${g.type}</td>
+        <td>${g.count}</td>
+        <td><strong>${g.total.toFixed(2)} ر.س</strong></td>
+      </tr>
+    `).join("");
+}
+
+function exportJSON() {
+  const cfg = FARMS[currentFarmKey];
+  const blob = new Blob([JSON.stringify({ farm: cfg.name, sectionNames, sectionColors, stageDividers, palms, transactions }, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `${cfg.name}_2027_نسخة_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+}
+
+function importJSON(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      const importedPalms = normalizeArray(data.palms);
+      if (importedPalms.length > 0) {
+        if (data.sectionNames && typeof data.sectionNames === "object") {
+          sectionNames = { ...DEFAULT_SECTION_NAMES, ...data.sectionNames };
+        }
+        if (data.sectionColors) {
+          sectionColors = migrateColorsToKeys(data.sectionColors);
+        }
+        palms = importedPalms.map(p => {
+          const sk = resolveSectionKey(p.sectionKey || p.section);
+          return {
+            ...p,
+            sectionKey: sk,
+            section: getSectionLabel(sk),
+            colorSourceSection: p.colorSourceSection ? resolveSectionKey(p.colorSourceSection) : null
+          };
+        });
+        transactions = normalizeArray(data.transactions);
+        stageDividers = normalizeArray(data.stageDividers);
+        persistData();
+        refreshAllViews();
+        alert(`تم استيراد البيانات إلى ${FARMS[currentFarmKey].name} بنجاح.`);
+      }
+    } catch (err) {
+      alert("ملف غير صالح.");
+    }
+  };
+  reader.readAsText(file);
+}
+
+function exportTransactionsCSV() {
+  const cfg = FARMS[currentFarmKey];
+  const headers = ["رقم العملية","التاريخ","نوع المعاملة","عدد النخيل","أرقام النخيل","المادة","الجرعة","الوحدة","الكمية","سعر الوحدة","الإجمالي","طريقة التنفيذ","موعد المتابعة","العامل","ملاحظات"];
+  const rows = transactions.map(t => {
+    const pids = normalizeArray(t.palmIds);
+    return [
+      t.id, t.date, t.type, pids.length, `"${pids.join(",")}"`, `"${t.material}"`,
+      `"${t.dose || ""}"`, t.unit, t.qty, t.unitPrice, t.totalCost, t.method, t.followupDate || "", `"${t.worker || ""}"`, `"${t.notes || ""}"`
+    ];
+  });
+  const csv = "\uFEFF" + [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `معاملات_${cfg.name}_2027.csv`;
+  a.click();
+}
+
+function resetDemoData() {
+  if (!confirm(`هل تريد إعادة ضبط بيانات ${FARMS[currentFarmKey].name} إلى الحالة الافتراضية؟`)) return;
+  sectionNames = { ...DEFAULT_SECTION_NAMES };
+  sectionColors = { ...DEFAULT_SECTION_COLORS };
+  stageDividers = [];
+  palms = buildInitialPalms();
+  transactions = buildSampleTransactions(currentFarmKey);
+  persistData();
+  refreshAllViews();
+}
+
+// Initialize
+document.getElementById("txDate").value = new Date().toISOString().slice(0, 10);
+updateFarmHeaderUI();
+loadFarmState(currentFarmKey);
+refreshAllViews();
+attachFirebaseListener();
+</script>
+</body>
+</html>
